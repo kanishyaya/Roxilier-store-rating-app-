@@ -1,231 +1,201 @@
-# 🏪 Store Rating App
+# Store Rating App
 
-A small full-stack web app where people can rate the stores they visit — think Google Maps reviews, but simpler. Admins manage the platform, normal users leave 1–5 star ratings, and store owners get to see how their store is doing.
+A full-stack web app where people can rate stores registered on the platform, on a scale of 1 to 5. Built as a submission for a full-stack coding challenge.
 
-Built as my submission for a full-stack coding challenge. 🙂
+There's a single login for everyone. What you see after logging in depends on your role — System Administrator, Normal User, or Store Owner.
 
----
+## Tech stack
 
-## 🛠️ Tech stack
-
-- **Backend** — Node.js + Express, Prisma ORM
+- **Backend** — Node.js, Express, Prisma ORM
 - **Database** — PostgreSQL
-- **Frontend** — React (Vite) + Tailwind CSS
-- **Auth** — JWT with role-based access (three roles: `ADMIN`, `USER`, `OWNER`)
-- **Everything wired together** — Docker Compose
+- **Frontend** — React (Vite), Tailwind CSS
+- **Auth** — JWT with role-based access control
+- **Local dev / deployment** — Docker Compose
 
----
+## The three roles
 
-## 👥 The three roles
-
-There's one login page for everyone. What you see after logging in depends on your role.
-
-**🛡️ System Administrator** — the person running the platform.
+**System Administrator**
 - Adds new stores, normal users, and other admins
-- Dashboard with total users, stores, and ratings
-- Can view and filter every user and every store (by name, email, address, role)
-- Can drill into any user's details
+- Sees a dashboard with total users, total stores, and total ratings
+- Can view and filter every user and every store, by name, email, address, or role
+- Can open any user's details — if that user is a Store Owner, their store's rating is shown too
 
-**👤 Normal User** — the person leaving reviews.
+**Normal User**
 - Signs up through the registration page
-- Browses all stores, searches by name or address
-- Rates any store 1–5 ⭐, or updates a rating they've already left
+- Browses all stores and can search by name or address
+- Rates any store from 1 to 5, and can update a rating they've already given
 - Can change their own password
 
-**🏬 Store Owner** — the person running a store.
-- Sees a dashboard of everyone who rated their store
-- Sees the store's average rating at a glance
+**Store Owner**
+- Sees a dashboard listing everyone who's rated their store
+- Sees their store's average rating
 - Can change their own password
 
----
+Everyone can log out.
 
-## 🚀 Getting it running
+## Running it locally
 
-### The easy way — Docker Compose
-
-If you have Docker installed, this is a two-step process:
+### With Docker Compose (recommended)
 
 ```bash
-cp .env.example .env      # then edit .env and set a real password + JWT secret
+cp .env.example .env
+```
+
+Open `.env` and set a real `POSTGRES_PASSWORD` and `JWT_SECRET`. Then:
+
+```bash
 docker compose up --build
 ```
 
-That's it. It starts Postgres, the backend, and the frontend all together.
+This starts Postgres, the backend, and the frontend together, and runs the Prisma migrations automatically.
 
-| What      | Where                        |
-|-----------|------------------------------|
-| Frontend  | http://localhost:5173        |
-| Backend   | http://localhost:6001/api    |
-| Postgres  | localhost:5433               |
+| Service   | URL                          |
+|-----------|-------------------------------|
+| Frontend  | http://localhost:5173         |
+| Backend   | http://localhost:6001/api     |
+| Postgres  | localhost:5433                |
 
-The backend runs `prisma migrate deploy` on startup, so the database schema is ready to go the first time you launch.
-
-### The manual way
-
-If you'd rather run everything on your own machine:
+### Without Docker
 
 **Backend**
 ```bash
 cd backend
 npm install
-cp .env.example .env      # edit DATABASE_URL and JWT_SECRET
-npm run db:migrate        # apply the Prisma migrations
-npm run dev               # boots on http://localhost:6001
+cp .env.example .env      # set DATABASE_URL and JWT_SECRET
+npm run db:migrate
+npm run dev                # http://localhost:6001
 ```
 
 **Frontend**
 ```bash
 cd frontend
 npm install
-cp .env.example .env      # VITE_API_URL defaults to http://localhost:6001/api
-npm run dev               # boots on http://localhost:5173
+cp .env.example .env       # VITE_API_URL defaults to http://localhost:6001/api
+npm run dev                 # http://localhost:5173
 ```
 
----
+## Seeding sample data
 
-## 🌱 Seeding sample data
-
-Rather than clicking through the signup form a dozen times, you can populate the DB with an admin, a few normal users, a few store owners with their stores, and a spread of ratings:
+Instead of registering test accounts by hand, you can seed the database with an admin, five normal users, four store owners with linked stores, and a spread of ratings:
 
 ```bash
 cd backend
 npm run seed
 ```
 
-It's idempotent — safe to re-run without creating duplicates.
+Safe to run more than once — it uses `upsert`, so it won't create duplicates.
 
-Every seeded account uses the same password: **`Password@123`**
+Every seeded account uses the password `Password@123`.
 
-| Role  | Email                       |
-|-------|-----------------------------|
-| ADMIN | `admin@example.com`         |
-| OWNER | `suresh.owner@example.com` (and 3 more) |
-| USER  | `ananya.k@example.com` (and 4 more)     |
+| Role  | Email                        |
+|-------|-------------------------------|
+| Admin | admin@example.com             |
+| Owner | suresh.owner@example.com (and three more) |
+| User  | ananya.k@example.com (and four more)      |
 
----
+## Form validation
 
-## ✅ Form validation rules
-
-These come straight from the challenge spec and are enforced on both the backend (source of truth) and the frontend (for instant feedback):
+Enforced on both the backend (source of truth) and the frontend (for immediate feedback):
 
 - **Name** — 20 to 60 characters
-- **Address** — max 400 characters
-- **Password** — 8 to 16 characters, must include at least one uppercase letter and one special character
+- **Address** — up to 400 characters
+- **Password** — 8 to 16 characters, with at least one uppercase letter and one special character
 - **Email** — standard email format
 
----
-
-## 🧪 Running the tests
+## Running the tests
 
 ```bash
 cd backend
 npm test
 ```
 
-Runs the Vitest suite — no real database needed, Prisma is mocked. Currently covers signup/login, the JWT auth middleware, and password-change logic.
+Runs the Vitest suite with Prisma mocked, so no live database is needed. Covers signup/login, the JWT auth middleware, and password-change logic.
 
----
+## Security notes
 
-## 🔐 Security stuff
+- Passwords hashed with bcrypt (cost factor 12)
+- JWTs signed with a secret from the environment; role is embedded in the token
+- Every protected route checks the role server-side, not just in the UI
+- Input sanitization strips HTML tags from request fields, but skips password fields so nothing is altered before hashing
+- Security headers set on every response (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`)
+- CORS restricted to an origin allowlist via `CORS_ORIGIN`
+- Request body size capped at 10 KB
+- `sortBy` query params are checked against an allowlist on every list endpoint, to prevent arbitrary column access
+- SQL injection isn't a concern here since Prisma parameterizes all queries
+- `.env` is excluded from version control; `.env.example` shows the expected shape
 
-A few things I did to keep the app reasonably safe:
+## Pagination
 
-- Passwords are hashed with **bcrypt** (cost factor 12) — nothing is ever stored in plain text
-- **JWTs** signed with a secret from the environment, roles baked into the token
-- **Role checks on every protected route** — server-side, not just hidden in the UI (so you can't get past guards by editing localStorage)
-- **Input sanitization** middleware strips HTML tags from every request field, but skips password fields (nothing should ever transform a password before it's hashed)
-- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` on every response
-- **Strict CORS** — origin allowlist via the `CORS_ORIGIN` env var
-- **Body-size limit** — 10 KB, so nobody can flood the server with huge payloads
-- **`sortBy` allowlists** on all list endpoints so people can't inject arbitrary column names
-- **SQL injection** — Prisma parameterises everything, so this is handled by design
-
-Also — **`.env` is `.gitignore`d and not shipped with the code**. `.env.example` shows the shape; you fill it in with your own secrets.
-
----
-
-## 📄 Pagination
-
-Every list endpoint returns a paginated envelope:
+Every list endpoint returns:
 
 ```json
 {
-  "data": [ /* rows */ ],
+  "data": [ ],
   "pagination": { "total": 120, "page": 2, "limit": 20, "totalPages": 6 }
 }
 ```
 
 Query params: `page` (default 1) and `limit` (default 20, max 100).
 
-Sort by `avgRating` / `rating` on the stores endpoints works correctly across pages — averages are computed for every matching store first, sorted, and only then sliced for the page. (Sounds obvious, but paginating before sorting is a subtle trap and a common bug.)
+Sorting by rating on the stores endpoints is computed across the full result set before pagination is applied, so rankings stay consistent across pages rather than only sorting within the current page.
 
----
+## API reference
 
-## 📚 API reference
-
-Every route except `/api/auth/*` needs `Authorization: Bearer <token>`.
+Every route except `/api/auth/*` requires `Authorization: Bearer <token>`.
 
 ### Auth — `/api/auth`
 | Method | Route     | Body                              |
-|--------|-----------|-----------------------------------|
+|--------|-----------|-------------------------------------|
 | POST   | `/signup` | `name, email, address, password`  |
-| POST   | `/login`  | `email, password`                 |
+| POST   | `/login`  | `email, password`                   |
 
 ### Admin — `/api/admin` (ADMIN only)
 | Method | Route                                                          | Notes |
-|--------|----------------------------------------------------------------|-------|
-| GET    | `/dashboard-stats`                                             | `{ totalUsers, totalStores, totalRatings }` |
+|--------|------------------------------------------------------------------|-------|
+| GET    | `/dashboard-stats`                                                | `{ totalUsers, totalStores, totalRatings }` |
 | GET    | `/users?name=&email=&address=&role=&sortBy=&order=&page=&limit=` | Paginated |
-| GET    | `/users/:id`                                                   | Single user detail |
-| POST   | `/users`                                                       | `name, email, address, password, role` |
-| GET    | `/stores?name=&email=&address=&sortBy=&order=&page=&limit=`    | Paginated |
-| POST   | `/stores`                                                      | `name, email, address, ownerId` |
+| GET    | `/users/:id`                                                      | Single user detail |
+| POST   | `/users`                                                          | `name, email, address, password, role` |
+| GET    | `/stores?name=&email=&address=&sortBy=&order=&page=&limit=`      | Paginated |
+| POST   | `/stores`                                                          | `name, email, address, ownerId` |
 
 ### User — `/api/user`
-| Method | Route                          | Roles | Notes |
-|--------|--------------------------------|-------|-------|
-| GET    | `/stores?search=&sortBy=&order=&page=&limit=` | any auth | Paginated |
-| POST   | `/ratings`                     | USER only | `storeId, score (1–5)` — upsert |
-| PUT    | `/ratings/:storeId`            | USER only | `score (1–5)` — upsert |
-| PUT    | `/change-password`             | any auth | `currentPassword, newPassword` |
+| Method | Route                          | Roles     | Notes |
+|--------|----------------------------------|-----------|-------|
+| GET    | `/stores?search=&sortBy=&order=&page=&limit=` | any authenticated role | Paginated |
+| POST   | `/ratings`                      | USER only | `storeId, score (1-5)`, upsert |
+| PUT    | `/ratings/:storeId`             | USER only | `score (1-5)`, upsert |
+| PUT    | `/change-password`               | any authenticated role | `currentPassword, newPassword` |
 
 ### Owner — `/api/owner` (OWNER only)
-| Method | Route             | Notes |
-|--------|-------------------|-------|
-| GET    | `/store`          | Store info + all ratings with rater details |
-| PUT    | `/change-password`| `currentPassword, newPassword` |
+| Method | Route              | Notes |
+|--------|----------------------|-------|
+| GET    | `/store`             | Store info plus all ratings with rater details |
+| PUT    | `/change-password`   | `currentPassword, newPassword` |
 
----
+## A note on the theme
 
-## 🎨 A note on the theme
+The interface uses a light blue palette. It's intentionally soft, but the primary buttons (`bg-blue-300` / `bg-blue-400` with white text) sit around a 2.5:1 contrast ratio, below the WCAG AA threshold of 4.5:1 for normal text. If accessibility matters for your use case, darkening the button text to `text-gray-900`, or moving the background to `bg-blue-500` / `bg-blue-600`, resolves this.
 
-The interface uses a light blue palette. It's intentionally soft, but `bg-blue-300` / `bg-blue-400` buttons with white text sit around a 2.5:1 contrast ratio — below the WCAG AA threshold of 4.5:1 for normal text. If accessibility matters for your use case, either darken the button text to `text-gray-900` or bump the button backgrounds to `bg-blue-500` / `bg-blue-600`.
-
----
-
-## 📂 What's inside
+## Project structure
 
 ```
 backend/                 Express API + Prisma
   src/
     routes/              auth, admin, user, owner
-    middleware/          JWT guard, input sanitization
-    utils/               validation, shared change-password logic
-  prisma/                schema.prisma + migrations
-  seed.js                sample data
-  tests/                 Vitest specs (Prisma mocked)
+    middleware/           JWT guard, input sanitization
+    utils/                validation, shared change-password logic
+  prisma/                 schema.prisma and migrations
+  seed.js                 sample data
+  tests/                  Vitest specs (Prisma mocked)
 
 frontend/                React + Vite + Tailwind
   src/
-    pages/               Login, Signup, Dashboard, Stores, OwnerDashboard, ChangePassword
-    components/          Sidebar, StarRating, ProtectedRoute
-    utils/               shared client-side validation
+    pages/                Login, Signup, Dashboard, Stores, OwnerDashboard, ChangePassword
+    components/           Sidebar, StarRating, ProtectedRoute
+    utils/                shared client-side validation
 
-docker-compose.yml       Postgres + backend + frontend
-.env.example             Copy to .env and fill in
-update.sql               Quick SQL to promote a user to ADMIN
+docker-compose.yml        Postgres, backend, and frontend wired together
+.env.example              Copy to .env and fill in your own values
+update.sql                 Quick SQL to promote a user to ADMIN
 ```
-
----
-
-That's the tour. If anything breaks or feels off, feel free to open an issue — always happy to hear feedback. 👋
